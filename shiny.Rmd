@@ -1,0 +1,202 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+###shiny_intro
+```{r}
+if("shiny" %in% installed.packages("shiny") == FALSE)install.packages("shiny")
+library(shiny)
+ui <- shiny::fluidPage(
+  sliderInput(
+    inputId = "num1",
+    label = "숫자를 선택하세요",
+    value = 25,
+    min = 1,
+    max = 50,
+    step = 1
+  ),
+  plotOutput("hist")
+)
+server <- function(input, output){
+  output$hist <- renderPlot({
+    hist(rnorm(input$num1),
+    main = "50 범위내에서 선택")
+  })
+}
+shiny::shinyApp(ui, server)
+```
+
+###shiny_bmi
+####고도 비만: 40이상
+####중등도 비만(2단계비만) : 35-39.9
+####경도비만(1단계비만) : 30-34.9
+####과체중 : 25-29.9
+####정상: 18.5-24.9
+####저체중: 18.5 미만
+```{r}
+library(shiny)
+
+bmi <- function(t,w){
+  t <- t/100
+  x <- w/t*t
+  
+  return(if(x>=40)'고도 비만'else
+    if(x>=35 & x<40)'중등도 비만'else
+    if(x>=30& x<35)'경도비만'else
+    if(x>=25& x<30)'과체중'else
+    if(x>=18.5& x<25)'정상'else
+    '저체중'
+    )
+}
+#bmi(180,10)
+ui <- fluidPage(
+  numericInput("t","키 :",10, min=1, max=100),
+  numericInput("w","몸무게 :",10, min=1, max=100),
+  verbatimTextOutput("value")
+)
+
+server <- function(input, output, session) {
+  output$value <- renderText({bmi(input$t,input$w)})
+}
+
+shinyApp(ui, server)
+```
+
+###shiny_Calc
+```{r}
+if("shiny" %in% installed.packages("shiny") == FALSE)install.packages("shiny")
+library(shiny)
+if("shinyjs" %in% installed.packages("shinyjs") == FALSE)install.packages("shinyjs")
+library(shinyjs)
+
+calc <- function(n1,op,n2){
+  return(if(op=='+'){n1+n2}else
+    if(op=='-'){n1-n2}else
+    if(op=='*'){n1*n2}else
+    if(op=='/'){n1%/%n2}else
+    {0}
+  )
+}
+ui <- fluidPage(
+  useShinyjs(),
+  numericInput("num1","첫번째 수 :",0, min=1, max=100),
+  textInput("op","연산기호:"),
+  numericInput("num2","두번째 수 :",0, min=1, max=100),
+  #verbatimTextOutput("value")
+  actionButton("btn","클 릭")
+)
+
+server <- function(input, output, session) {
+  #output$value <- renderText({calc(input$num1,input$op,input$num2)})
+  onclick("btn",info({calc(input$num1,input$op,input$num2)}))
+}
+if(interactive()){
+  shinyApp(ui, server)
+}
+```
+
+###shiny_RPS
+####가위 1, 바위 2, 보 3
+####a - b = 0 비김
+####a - b = 1, -2 b 패배
+####a - b = -1, 2 b 승리 
+```{r}
+library(shiny)
+library(shinyjs)
+library(shiny)
+rps <- function(x){
+  
+  if(x=='가위'){
+    user <- 1
+  }else if(x=='바위'){
+    user <- 2
+  }else{
+    user <- 3
+  }
+  comp <- sample(1:3,1,replace = T)
+  result <- comp - user
+  print(result)
+  return (if(result == 1 | result == -2)'패배'
+          else if(result == -1 | result == 2) '승리'
+          else '비김')
+}
+#rps(2)
+ui <- fluidPage(
+  titlePanel("가위바위보 게임"),
+  sidebarLayout(
+    sidebarPanel(
+      helpText("가위, 바위, 보 중에서 선택하세요"),
+      selectInput("var",
+                  label = "가위바위보",
+                  choices = c("가위","바위","보"),
+                  selected = "가위")
+    ), 
+    mainPanel(
+      textOutput("selectedVar")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  output$selectedVar <- renderText(
+    paste("경기결과 :",rps(input$var))
+  )
+}
+
+shinyApp(ui, server)
+
+```
+
+
+###shiny_pop
+```{r}
+if("plotly" %in% installed.packages("plotly") == FALSE)install.packages("plotly")
+library(plotly)
+library(shiny)
+data = data.frame(
+  Population=sample(1:20,10),
+  Households = sample(1:20,10),
+  year=sample(c(2000,2010),10,replace=T))
+
+ui <- fluidPage(
+  titlePanel(
+    title = h4("인구조사",
+               align="center")),
+  sidebarPanel(
+    radioButtons("YEAR", "10년주기선택",
+                 choices = c("2000","2010"),
+                 selected = "2000")),
+  mainPanel(
+    plotOutput("bar",height = 500))
+)
+
+server <- function(input,output){
+  reactive_data = reactive({
+    selected_year = as.numeric(input$YEAR)
+    return(data[data$year==selected_year,])
+  })
+  output$bar <- renderPlot({
+    color <- c("blue", "red")
+    our_data <- reactive_data()
+    barplot(colSums(our_data[,c("Population","Households")]),
+            ylab="Total",
+            xlab="Census Year",
+            names.arg = c("Population", "Households"),
+            col = color)
+  })
+}
+shinyApp(ui=ui, server=server)
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
